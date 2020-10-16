@@ -26,7 +26,10 @@ class Wall():
     def __init__(self, x0, y0, xf, yf):
         self.r0 = np.array((x0, y0)) # Set start-and endpoints of wall (r0 anf rf resp.)
         self.rf = np.array((xf, yf))
+        self.length = self.wall_length() # Calculate wall length and store for fast access
+        self.vector = self.wall_vector() # Calculate wall vector and store for fast access
         self.angle = self.wall_angle() # Calculate wall angle and store for fast access
+
         if self.angle in [0, pi]: # Store whether the wall is horizontal or vertical (or neither)
             self.horizontal = True # Horiz. and vert. walls have simpler distance_to() methods
             self.vertical = False
@@ -36,8 +39,7 @@ class Wall():
         else:
             self.horizontal = False
             self.vertical = False
-        self.length = self.wall_length() # Calculate wall length and store for fast access
-        self.vector = self.wall_vector() # Calculate wall vector and store for fast access
+
         self._cell = None
 
     def __str__(self):
@@ -97,7 +99,7 @@ class Wall():
 
     def wall_angle(self):
         """returns the angle between the wall_vector and the x-axis"""
-        t = acos((self.vector).dot(np.array((1,0))) / norm(self.vector))
+        t = acos(dot(self.vector, np.array((1,0))) / norm(self.vector))
         s = asin(cross(self.vector, np.array((0,1))) / norm(self.vector))
         if s <= 0:
             return t
@@ -347,7 +349,7 @@ class Particle():
 
     def get_v_vec(self):
         """Return a velocity vector"""
-       return np.array((self.v * cos(self.moving_angle), self.v * sin(self.moving_angle)))
+        return np.array((self.v * cos(self.moving_angle), self.v * sin(self.moving_angle)))
 
     @property
     def moving_angle(self):
@@ -530,7 +532,7 @@ class RTP(Particle):
         unnecessary repeated collisions"""
         r0 = wall.r0
         p = self.get_r()
-        x = wall.vector.dot(p-r0)/wall.length**2 * wall.vector
+        x = dot(wall.vector, p-r0)/wall.length**2 * wall.vector
         d_vec = ((p - r0) - x) / norm((p - r0) - x)
         self.set_r_vec(self.get_r() + (self.RADIUS - wall.distance_to(self) + tol) * d_vec)
 
@@ -538,7 +540,7 @@ class RTP(Particle):
         """return the angle of collision with a wall"""
         v = np.array((cos(self.moving_angle), sin(self.moving_angle)))
         w = np.array((cos(wall.angle), sin(wall.angle)))
-        c = acos(v.dot(w))
+        c = acos(dot(v, w))
         if c > pi / 2:
             return pi - c
         else:
@@ -554,7 +556,7 @@ class RTP(Particle):
         ## Figure out which angle to assign to particle
         w = np.array((cos(wall.angle), sin(wall.angle)))
         v = np.array((cos(self.moving_angle), sin(self.moving_angle)))
-        sign = v.dot(w)
+        sign = dot(v, w)
         if sign >= 0:
             self.moving_angle = wall.angle
         elif sign < 0:
