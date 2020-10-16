@@ -27,9 +27,9 @@ A simple wall object defined as a straight line between (```x0```,```y0```) and 
 ### Parameters
 ```x0, y0, xf, yf``` are the x-y coordinates of the end points of the wall.
 
-## Particle
-``` Particle(x_pos=0, y_pos=0, angle=0)```
-The Particle class models a RTP and manages decays and collisions with walls.
+## RTP particle
+``` RTP(x_pos=0, y_pos=0, angle=0)```
+The RTP class models a RTP and manages decays and collisions with walls.
 ### Parameters
 - ```x_pos``` The x_position of the particle. Default = 0.
 - ```y_pos``` The y_position of the particle. Default = 0.
