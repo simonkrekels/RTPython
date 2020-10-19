@@ -18,6 +18,7 @@ def cross(a, b):
 def dot(a, b):
     return a[0] * b[0] + a[1] * b[1]
 
+
 class Wall():
     """A class defining a wall and some properties.
     A wall is defined by its endpoints and is a straight line between them."""
@@ -74,7 +75,7 @@ class Wall():
             else: # particle between endpoints
                 return abs(particle.x - self.r0[0])
         else:
-            rp = particle.get_r()
+            rp = particle.r
             if all(self.r0 == rp) or all(self.rf == rp): # Particle on wall
                 return 0
             if acos(dot((rp - self.r0) / norm(rp - self.r0),
@@ -164,10 +165,12 @@ class Wall():
         ax.add_line(line)
         return line
 
+
 class Cell():
     """A class for a cell in which simulations take place."""
     walls = []
-    particles = []
+    RTPs = []
+    balls = []
     velocity = 0.5 # RTP intrinsic velocity
     decay_rate = 0.5 # RTP decay rate
     RTP_radius = 0.15
@@ -219,9 +222,14 @@ class Cell():
         return self.pbc
 
     def add_particle(self, particle):
-        if particle not in self.particles:
-            self.particles.append(particle)
-            particle.cell = self
+        if isinstance(particle, RTP):
+            if particle not in self.RTPs:
+                self.balls.append(particle)
+                particle.cell = self
+        elif isinstance(particle, Ball):
+            if particle not in self.balls:
+                self.balls.append(particle)
+                particle.cell = self
 
     def set_velocity(self, velocity):
         self.velocity = velocity
@@ -252,9 +260,14 @@ class Cell():
         return self.field
 
     def remove_particle(self, particle):
-        if particle in self.particles:
-            del particle.cell
-            self.particles.remove(particle)
+        if isinstance(particle, RTP):
+            if particle in self.RTPs:
+                del particle.cell
+                self.RTPs.remove(particle)
+        if isinstance(particle, Ball):
+            if particle in self.balls:
+                del particle.cell
+                self.balls.remove(particle)
 
     def add_wall(self, wall):
         if wall not in self.walls:
@@ -268,20 +281,27 @@ class Cell():
         return self.walls
 
     def get_particles(self):
-        return self.particles
+        return self.RTPs + self.balls
+
+    def get_RTPs(self):
+        return self.RTPs
+
+    def get_balls(self):
+        return self.balls
+
 
 class Particle():
     """A particle class to model particles and moving objects. Particle class is meant to be abstract."""
     def __init__(self, x_pos=0, y_pos=0, cell=None):
-        self._x = x_pos
-        self._y = y_pos
+        self._r = np.array((x_pos, y_pos))
+        self._v = np.array((0, 0))
         self._cell = cell
         self._periodic = False
 
     @property
     def x(self):
         """The x-coordinate"""
-        return self._x
+        return self._r[0]
 
     @x.setter
     def x(self, value):
@@ -290,33 +310,41 @@ class Particle():
                 self.cell.right_flux += 1 # Update tally when particles travel through boundary
             elif value < 0:
                 self.cell.left_flux += 1 # Update tally when particles travel through boundary
-            self._x = value % self.cell.cell_size[0]
+            self._r[0] = value % self.cell.cell_size[0]
         else:
-            self._x = value
+            self._r[0] = value
 
     @property
     def y(self):
         """The y-coordinate"""
-        return self._y
+        return self._r[1]
 
     @y.setter
     def y(self, value): # cells are never periodic in y
-        self._y = value
+        self._r[1] = value
 
-    def get_r(self):
-        """return an array of coordinates. Bad design?"""
-        return np.array((self.x, self.y))
+    @property
+    def r(self):
+       return self._r
 
-    def set_r(self, x, y):
-        """set x and y at once."""
-        self.x = x
-        self.y = y
+    @r.setter
+    def r(self, r):
+        self._r = r
+        if self._periodic:
+            if r[0] > self.cell.cell_size[0]:
+                self.cell.right_flux += 1 # Update tally when particles travel through boundary
+            elif r[0] < 0:
+                self.cell.left_flux += 1 # Update tally when particles travel through boundary
+            self._r[0] = r[0] % self.cell.cell_size[0]
 
-    def set_r_vec(self, r):
-        """set x and y at once by passing an array"""
-        if len(r) != 2:
-            raise TypeError
-        self.set_r(r[0], r[1])
+    @property
+    def mass(self):
+        """An particle's mass for use in ball collisions"""
+        return self._mass
+
+    @mass.setter
+    def mass(self, val):
+        self._mass = val
 
     @property
     def cell(self):
@@ -339,32 +367,33 @@ class Particle():
             self._periodic = self.cell.get_pbc()
 
     @property
+    def vx(self):
+        return self._v[0]
+
+    @vx.setter
+    def vx(self, val):
+        self._v[0] = val
+
+    @property
+    def vy(self):
+        return self._v[1]
+
+    @vy.setter
+    def vy(self, val):
+        self._v[1] = val
+
+    @property
     def v(self):
         """The particle's current velocity"""
         return self._v
 
     @v.setter
-    def v(self, value):
-        self._v = value
-
-    def get_v_vec(self):
-        """Return a velocity vector"""
-        return np.array((self.v * cos(self.moving_angle), self.v * sin(self.moving_angle)))
-
-    @property
-    def moving_angle(self):
-        """The angle the particle is moving in"""
-        return self._moving_angle
-
-    @moving_angle.setter
-    def moving_angle(self, value):
-        self._moving_angle = value
-        if self.cell:
-            self.walls_on_path = self.get_walls_on_path()
+    def v(self, v):
+        self._v = v
 
     def draw(self, ax):
         """graphical representation as a circle"""
-        circle = Circle(xy=self.get_r(), radius=self.RADIUS)
+        circle = Circle(xy=self.r, radius=self.RADIUS)
         ax.add_patch(circle)
         return circle
 
@@ -374,15 +403,16 @@ class RTP(Particle):
     RADIUS = 0.1 # RTP radius
     RATE = 5 # RTP decay rate
     FIELD = 0 # Field acting on RTP
+    MASS = 1
     walls_on_path = [] # Walls this particle will or might collide with
 
     def __init__(self, x_pos=0, y_pos=0, angle=0, cell=None, pbc=False):
         super().__init__(x_pos, y_pos, cell)
+        self._mass = self.MASS
         self._angle = angle
         self._time = 0
         self._runtime = rand.expovariate(self.RATE)
-        self._v = self.VELOCITY
-        self.moving_angle = self.free_moving_angle()
+        self.v = self.free_v_vec()
         self._periodic = pbc
         self._hovering_wall = None
 
@@ -445,11 +475,15 @@ class RTP(Particle):
             self.FIELD = self.cell.get_field()
             self._periodic = self.cell.get_pbc()
 
-    def free_moving_angle(self):
-        """retrns the moving angle the particle would have when there
-        are no walls nearby."""
-        return atan2(self.VELOCITY * sin(self.angle),
-                     (self.VELOCITY * cos(self.angle) + self.FIELD))
+    @Particle.v.setter
+    def v(self, v):
+        self._v = v
+        if self.cell: # get walls on path in new direction
+            self.walls_on_path = self.get_walls_on_path()
+
+    def free_v_vec(self):
+        return np.array((self.VELOCITY * cos(self.angle) + self.FIELD,
+                         self.VELOCITY * sin(self.angle)))
 
     def is_following_wall(self):
         """Check whether the RTP is following a wall"""
@@ -458,16 +492,6 @@ class RTP(Particle):
         else:
             return False
 
-    def get_v_vec(self):
-        """return a velocity vector"""
-        if self.hovering_wall:
-            return np.array((self.v * cos(self.moving_angle) + self.FIELD,
-                             self.v * sin(self.moving_angle)))
-        else:
-            v_f = sqrt((self.v * cos(self.angle) + self.FIELD)**2 + (self.v * sin(self.angle))**2)
-            return np.array((v_f * cos(self.moving_angle), v_f * sin(self.moving_angle)))
-
-
     def run(self, dt=1):
         """Make the particle run forward with timestep dt.
        Also handle tumbling and collisions"""
@@ -475,11 +499,11 @@ class RTP(Particle):
         if (self.time + dt) > self.runtime:
             self.tumble() # If particles exponential runtime is reached, tumble.
 
-        self.set_r_vec(self.get_r() + dt * self.get_v_vec()) # Set new position
+        self.r = self.r + dt * self.v # Set new position
 
         if following_before and not self.is_following_wall(): # Reset moving angle to match
                                                               # intrinsic angle when free from wall
-            self.moving_angle = self.free_moving_angle()
+            self.v = self.free_v_vec()
             self.hovering_wall = None
 
         hitwall = self.hits_wall() # check if rtp hits any walls (EXPENSIVE STEP)
@@ -496,8 +520,7 @@ class RTP(Particle):
         self.runtime = rand.expovariate(self.RATE) # assign new runtime pulled from exp. dist.
         self.time = 0 # reset internal clock
         ## Break free from wall
-        self.v = self.VELOCITY # set velocity to intrinsic velocity
-        self.moving_angle = self.free_moving_angle() # set angle to free angle
+        self.v = self.free_v_vec() # set angle to free angle
 
     def hits_wall(self):
         """return any wall with which the particle overlaps"""
@@ -516,8 +539,7 @@ class RTP(Particle):
 
     def get_walls_on_path(self):
         """return walls on the path of RTP"""
-        xf = self.x + 1.5 * self.runtime * self.get_v_vec()[0] # 1.5*runtime to account for 
-        yf = self.y + 1.5 * self.runtime * self.get_v_vec()[1] # almost-parallel paths with walls
+        xf, yf = self.r + 1.5 * self.runtime * self.v
         r0, rf = np.array((self.x, self.y)), np.array((xf, yf)) # Initial and final pos of path
         walls = []
         for w in self.cell.get_walls():
@@ -531,40 +553,44 @@ class RTP(Particle):
         """sets new position relative to colliding wall. tol expresses some margin to avoid
         unnecessary repeated collisions"""
         r0 = wall.r0
-        p = self.get_r()
+        p = self.r
         x = dot(wall.vector, p-r0)/wall.length**2 * wall.vector
         d_vec = ((p - r0) - x) / norm((p - r0) - x)
-        self.set_r_vec(self.get_r() + (self.RADIUS - wall.distance_to(self) + tol) * d_vec)
-
-    def collision_angle(self, wall):
-        """return the angle of collision with a wall"""
-        v = np.array((cos(self.moving_angle), sin(self.moving_angle)))
-        w = np.array((cos(wall.angle), sin(wall.angle)))
-        c = acos(dot(v, w))
-        if c > pi / 2:
-            return pi - c
-        else:
-            return c
+        self.r = self.r + (self.RADIUS - wall.distance_to(self) + tol) * d_vec
 
     def collide(self, wall):
         """handle collision with a wall"""
-        c = self.collision_angle(wall)
-        self.v = self.v * cos(c) # velocity reduced to component along wall
-
         self.new_pos(wall) # set new position: shift away from wall
 
         ## Figure out which angle to assign to particle
         w = np.array((cos(wall.angle), sin(wall.angle)))
-        v = np.array((cos(self.moving_angle), sin(self.moving_angle)))
+        v = self.v
         sign = dot(v, w)
         if sign >= 0:
-            self.moving_angle = wall.angle
+            self.v = dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
         elif sign < 0:
-            self.moving_angle = pi + wall.angle
+            self.v = -dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
 
         self.hovering_wall = wall # RTP is now following the wall
 
 class Ball(Particle):
     """A class for a passive 'ping-pong' ball which moves according to collisions with
     RTP particles."""
-    pass
+    def __init__(self, x_pos, y_pos, mass, radius,  cell=None):
+        super().__init__(x_pos, y_pos, cell)
+        self._mass = mass
+        self.RADIUS = radius
+
+    def move(self, dt):
+        self.x, self.y = self.r + dt * self.v
+
+    def collide(self, rtp):
+        v_p = rtp.v
+        r_p = rtp.r
+        r_b = self.r
+
+
+        self.v = 0 # New velocity
+
+
+
