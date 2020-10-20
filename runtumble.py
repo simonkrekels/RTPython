@@ -224,7 +224,7 @@ class Cell():
     def add_particle(self, particle):
         if isinstance(particle, RTP):
             if particle not in self.RTPs:
-                self.balls.append(particle)
+                self.RTPs.append(particle)
                 particle.cell = self
         elif isinstance(particle, Ball):
             if particle not in self.balls:
@@ -288,6 +288,12 @@ class Cell():
 
     def get_balls(self):
         return self.balls
+
+    def advance(self, dt=1):
+        for rtp in self.RTPs:
+            rtp.run(dt)
+        for ball in self.balls:
+            ball.move(dt)
 
 
 class Particle():
@@ -391,6 +397,15 @@ class Particle():
     def v(self, v):
         self._v = v
 
+    def new_pos(self, wall, tol=0.005):
+        """sets new position relative to colliding wall. tol expresses some margin to avoid
+        unnecessary repeated collisions"""
+        r0 = wall.r0
+        p = self.r
+        x = dot(wall.vector, p-r0)/wall.length**2 * wall.vector
+        d_vec = ((p - r0) - x) / norm((p - r0) - x)
+        self.r = self.r + (self.RADIUS - wall.distance_to(self) + tol) * d_vec
+
     def draw(self, ax):
         """graphical representation as a circle"""
         circle = Circle(xy=self.r, radius=self.RADIUS)
@@ -487,7 +502,7 @@ class RTP(Particle):
 
     def is_following_wall(self):
         """Check whether the RTP is following a wall"""
-        if self.hovering_wall and self.hovering_wall.distance_to(self) < 3 * self.RADIUS:
+        if self.hovering_wall and self.hovering_wall.distance_to(self) < 1.5 * self.RADIUS:
             return True
         else:
             return False
@@ -510,6 +525,11 @@ class RTP(Particle):
         if hitwall:
             for w in hitwall:
                 self.collide(w) # Handle collisons for any wall which the rtp collides with
+
+        hitball = self.hits_ball()
+        if hitball:
+            for b in hitball:
+                b.collide(self)
 
         self.time = self.time + dt # Increment internal clock
 
@@ -537,10 +557,17 @@ class RTP(Particle):
         else:
             return None
 
+    def hits_ball(self):
+        b = []
+        for ball in self.cell.get_balls():
+            if norm(ball.r - self.r) < ball.RADIUS + self.RADIUS:
+                b.append(ball)
+        return b
+
     def get_walls_on_path(self):
         """return walls on the path of RTP"""
         xf, yf = self.r + 1.5 * self.runtime * self.v
-        r0, rf = np.array((self.x, self.y)), np.array((xf, yf)) # Initial and final pos of path
+        r0, rf = self.r, np.array((xf, yf)) # Initial and final pos of path
         walls = []
         for w in self.cell.get_walls():
             c1 = cross((w.rf - w.r0), (r0 - w.r0)) # if cross products have different signs,
@@ -549,33 +576,20 @@ class RTP(Particle):
                 walls.append(w)
         return walls
 
-    def new_pos(self, wall, tol=0.005):
-        """sets new position relative to colliding wall. tol expresses some margin to avoid
-        unnecessary repeated collisions"""
-        r0 = wall.r0
-        p = self.r
-        x = dot(wall.vector, p-r0)/wall.length**2 * wall.vector
-        d_vec = ((p - r0) - x) / norm((p - r0) - x)
-        self.r = self.r + (self.RADIUS - wall.distance_to(self) + tol) * d_vec
-
     def collide(self, wall):
         """handle collision with a wall"""
         self.new_pos(wall) # set new position: shift away from wall
-
-        ## Figure out which angle to assign to particle
-        w = np.array((cos(wall.angle), sin(wall.angle)))
-        v = self.v
-        sign = dot(v, w)
-        if sign >= 0:
-            self.v = dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
-        elif sign < 0:
-            self.v = -dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
+        # Set velocity along wall and rescale
+        self.v = dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
 
         self.hovering_wall = wall # RTP is now following the wall
 
 class Ball(Particle):
     """A class for a passive 'ping-pong' ball which moves according to collisions with
     RTP particles."""
+
+    walls_on_path = []
+
     def __init__(self, x_pos, y_pos, mass, radius,  cell=None):
         super().__init__(x_pos, y_pos, cell)
         self._mass = mass
@@ -583,14 +597,63 @@ class Ball(Particle):
 
     def move(self, dt):
         self.x, self.y = self.r + dt * self.v
+        hitwalls = self.hits_wall()
+        if hitwalls:
+            for w in hitwalls:
+               self.collide_wall(w)
+
+    def get_walls_on_path(self):
+        """return walls on the path of RTP"""
+        xf, yf = self.r + 5 * self.v
+        r0, rf = self.r, np.array((xf, yf)) # Initial and final pos of path
+        walls = []
+        for w in self.cell.get_walls():
+            c1 = cross((w.rf - w.r0), (r0 - w.r0)) # if cross products have different signs,
+            c2 = cross((w.rf - w.r0), (rf - w.r0)) # r0 and rf are on opposite sides of wall
+            if c1 * c2 < 0:
+                walls.append(w)
+        return walls
+
+    def hits_wall(self):
+        """return any wall with which the particle overlaps"""
+        walls = []
+            # check walls on path
+        for w in self.cell.get_walls():
+            if w.distance_to(self) < self.RADIUS:
+                walls.append(w)
+        if len(walls) > 0:
+            return walls
+        else:
+            return None
+
+    def collide_wall(self, wall):
+        """handle collision with a wall"""
+        self.new_pos(wall) # set new position: shift away from wall
+        # Set velocity along wall and rescale
+        self.v = dot(self.v, wall.vector/wall.length) * wall.vector/wall.length
+        self.walls_on_path = self.get_walls_on_path()
+
+
 
     def collide(self, rtp):
         v_p = rtp.v
+        v_b = self.v
+        v_r = v_b - v_p
         r_p = rtp.r
         r_b = self.r
+        r = (r_b - r_p)/norm(r_b - r_p)
+        t = np.array((-r[1], r[0]))
+        alpha = acos(dot(r, v_r/norm(v_r)))
+
+        self.v = v_b - rtp.mass/self.mass * norm(v_r) * cos(alpha) * r
+        rtp.v = self.v + norm(v_r) * sin(alpha) * dot(v_r/norm(v_r), t) * t
+        rtp.r = r_p - r * (self.RADIUS + rtp.RADIUS - norm(r_b - r_p) + 0.001)
+        self.walls_on_path = self.get_walls_on_path()
 
 
-        self.v = 0 # New velocity
-
-
+    def draw(self, ax):
+        """graphical representation as a circle"""
+        circle = Circle(xy=self.r, radius=self.RADIUS, color='C1')
+        ax.add_patch(circle)
+        return circle
 
