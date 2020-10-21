@@ -48,7 +48,7 @@ def do_animation(cell, particles, save=False):
         print(f"{i:<3}: Right: {cell.right_flux}, Left: {cell.left_flux}", end="\r")
         return tuple(particle.draw(ax) for particle in particles)# + (w.draw(ax),)
 
-    anim = animation.FuncAnimation(fig, animate, frames=300, interval=50, blit=True)
+    anim = animation.FuncAnimation(fig, animate, frames=5000, interval=50, blit=True)
 
     if save:
         Writer = FasterFFMpegWriter # animation.writers['ffmpeg']
@@ -70,11 +70,11 @@ b = Ball(7.5,7.5,3,0.5)
 c.add_particle(b)
 p.append(b)
 
-c.set_field(0) # The field strength
+c.set_field(0.2) # The field strength
 c.set_pbc(True) # Periodic boundary conditions
 c.set_velocity(0.5) # Intrinsic particle velocity
 c.set_decay_rate(0.5) # Particle decay rate
 c.set_RTP_radius(0.1) # Particle radius -- relevant to avoid wall
                            # glitches at high velocity or field strength
 
-do_animation(c,p,save=True)
+do_animation(c,p,save=False)
