@@ -1,4 +1,4 @@
-** Migrated to KU Leuven gitlab **
+**Migrated to KU Leuven gitlab**
 
 # Initialisation
 ## Cell
