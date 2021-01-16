@@ -1,3 +1,5 @@
+** Migrated to KU Leuven gitlab **
+
 # Initialisation
 ## Cell
 ``` Cell(xsize=10, ysize=10, default_walls=False) ```
