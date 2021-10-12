@@ -15,7 +15,7 @@ import numba as nb
 @nb.jit(nopython=True)
 def quadratic(r, a, eps):
     '''
-    Force derived from a quadratic potential.
+    Force derived from a quadratic potential; F = -∇V
 
         V(r) = eps * (1 - r/(2a))**2
 
@@ -28,7 +28,7 @@ def quadratic(r, a, eps):
         distance between objects to calculate force between
 
     a : float
-        radius of interaction; assumes symmetric interaction
+        range of interaction; assumes symmetric interaction
 
     eps : float
         modulation of interaction strength
@@ -40,7 +40,7 @@ def quadratic(r, a, eps):
 
     '''
 
-    return eps/2 * (1-r/(2*a))/a
+    return eps * (1-r/(a))/a
 
 
 @nb.jit(nopython=True)
@@ -56,7 +56,7 @@ def wca(r, a, eps):
         distance between objects to calculate force between
 
     a : float
-        radius of interaction; assumes symmetric interaction
+        range of interaction; assumes symmetric interaction
 
     eps : float
         modulation of interaction strength
@@ -68,6 +68,8 @@ def wca(r, a, eps):
 
     '''
 
-    sigma = 2*a
+    return 4*eps*(12*a**12/r**13 - 6*a**6/r**7)
 
-    return 4*eps*(12*sigma**12/r**13 - 6*sigma**6/r**7)
+
+def force_sum(particles, interactions):
+    pass

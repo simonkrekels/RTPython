@@ -31,7 +31,7 @@ def interaction_periodic(r, force, cutoff, boxsize, eps, a):
     eps : float
         Modulates the strength of the interaction potential.
     a : float
-        Particle interaction radius
+        Particle interaction range
 
     Returns
     -------
@@ -70,7 +70,7 @@ def calc_int(r, pairs, force, cutoff, eps, boxsize, a):
         Boxsize to be passed to cKDTree. Must be a float (e.g. L for an L x L
         box).
      a : float
-        Particle interaction radius
+        Particle interaction range
 
     Returns
     -------

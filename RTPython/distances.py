@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+'''
 Created on Mon Sep 27 15:35:56 2021
 
 @author: Simon Krekels
 
 RTPython.distances - provides functions for handling periodic boundary
 conditions in 2D
-"""
+'''
 
 import numba as nb
 import numpy as np
@@ -105,3 +105,55 @@ def pbc_vec(x1, y1, x2, y2, L):
         a += np.array((0, -1))
 
     return np.array((xdiff, ydiff)) - L*a
+
+
+@nb.jit(nopython=True)
+def euclid_dist(x1, y1, x2, y2):
+    '''
+    Euclidean distance function
+
+    Parameters
+    ----------
+    x(y)1(2) : float
+        coordinate sets 1 and 2
+
+    Returns
+    -------
+    float
+        2D Euclidean distance: √(dx² + dy²).
+
+    '''
+    return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+
+@nb.jit(nopython=True)
+def euclid_metric(u, v):
+    '''
+    The same function as RTPython.distances.euclid_dist but accepting 2-vectors
+    u and v instead of components.
+
+    '''
+
+    x1, y1 = u
+    x2, y2 = v
+
+    return euclid_dist(x1, y1, x2, y2)
+
+
+@nb.jit(nopython=True)
+def euclid_vec(x1, y1, x2, y2):
+    '''
+    Return the vecror from (p2) to (p1)
+
+    Parameters
+    ----------
+    x(y)1(2) : float
+        coordinate sets 1 and 2
+
+    Returns
+    -------
+    ndarray
+        2D vector from (p2) to (p1).
+
+    '''
+    return np.array((x1 - x2, y1 - y2))
