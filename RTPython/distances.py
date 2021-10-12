@@ -143,7 +143,7 @@ def euclid_metric(u, v):
 @nb.jit(nopython=True)
 def euclid_vec(x1, y1, x2, y2):
     '''
-    Return the vecror from (p2) to (p1)
+    Return the vector from (p2) to (p1)
 
     Parameters
     ----------
