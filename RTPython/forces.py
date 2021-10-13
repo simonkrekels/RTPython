@@ -10,6 +10,7 @@ probes.
 """
 
 import numba as nb
+import numpy as np
 
 
 @nb.jit(nopython=True)
@@ -46,7 +47,7 @@ def quadratic(r, a, eps):
 @nb.jit(nopython=True)
 def wca(r, a, eps):
     '''
-    Force derived from a Weeks-Chandler-Anderson potential; F = -∇V
+    Force derived from a Weeks-Chandler-Anderson (WCA) potential; F = -∇V
 
         V(r) = 4 * eps * ( (σ/r)**12 - (σ/r)**6) + eps
 
@@ -64,7 +65,7 @@ def wca(r, a, eps):
     Returns
     -------
     float
-        the magnitude of the quadratic force between the objects at distance r
+        the magnitude of the WCA force between the objects at distance r
 
     '''
 
@@ -78,9 +79,9 @@ def force_sum(particles, interactions):
 
     Parameters
     ----------
-    particles : iterable
-        iterable containing dicts specifying particle collections (see
-        RTPython.initialize)
+    particles : dict
+        dict containing dicts specifying particle collections (see
+        RTPython.initialize) keys are the 'names' of the particles
     interactions : iterable
         iterables whose entries contain:
             - (func) the interaction function (RTPython.md) to use
@@ -94,4 +95,8 @@ def force_sum(particles, interactions):
         supplied.
 
     """
-    pass
+
+    F_res = [np.zeros(particles[p]['r'].shape) for p in particles]
+
+    for current_int in interactions:
+        continue
