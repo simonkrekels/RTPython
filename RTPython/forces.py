@@ -46,7 +46,7 @@ def quadratic(r, a, eps):
 @nb.jit(nopython=True)
 def wca(r, a, eps):
     '''
-    Force derived from a Weeks-Chandler-Anderson potential.
+    Force derived from a Weeks-Chandler-Anderson potential; F = -∇V
 
         V(r) = 4 * eps * ( (σ/r)**12 - (σ/r)**6) + eps
 
@@ -72,4 +72,26 @@ def wca(r, a, eps):
 
 
 def force_sum(particles, interactions):
+    """
+    Calculates total forces exerted by 'particles' on other 'particles',
+    mediated by 'interactions'.
+
+    Parameters
+    ----------
+    particles : iterable
+        iterable containing dicts specifying particle collections (see
+        RTPython.initialize)
+    interactions : iterable
+        iterables whose entries contain:
+            - (func) the interaction function (RTPython.md) to use
+            - (str, str) 'names' of interacting particles
+            - (iterable) interaction arguments to pass to the forces
+
+    Returns
+    -------
+    list
+        a list of ndarrays corresponding to the forces on the 'particles'
+        supplied.
+
+    """
     pass

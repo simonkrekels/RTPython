@@ -83,7 +83,7 @@ def probes_grid(L, phi, sigma, probes):
     return coords
 
 
-def init_rtp(r0, rate, velocity, sigma):
+def init_rtp(r0, rate, velocity, sigma, name='A'):
     """
     Initialize a collection of RTPs with identical features.
 
@@ -97,6 +97,8 @@ def init_rtp(r0, rate, velocity, sigma):
         RTP propulsion velocity.
     sigma : float
         RTP interaction range (diameter).
+    name : str
+        label for this collection.
 
     Returns
     -------
@@ -109,6 +111,7 @@ def init_rtp(r0, rate, velocity, sigma):
             - velocity: (float) RTP self-propulsion velocity; |v| = velocity
             - size: (float) RTP interaction range (diameter)
             - time: (float) simulation clock
+            - name: (str) label for this collection
             - type: (str) type of particles described
 
     """
@@ -130,6 +133,7 @@ def init_rtp(r0, rate, velocity, sigma):
             'velocity': velocity,
             'size': sigma,
             'time': 0.0,
+            'name': name,
             'type': 'rtp'}
 
 
@@ -137,7 +141,7 @@ def init_abp():
     pass
 
 
-def init_probes(r0, sigma):
+def init_probes(r0, sigma, name='B'):
     """
     Initialize a collection of identical (non-moving) probes.
 
@@ -147,6 +151,8 @@ def init_probes(r0, sigma):
         probe positions.
     sigma : float
         probe diameter.
+    name : str
+        label for this collection.
 
     Returns
     -------
@@ -154,11 +160,13 @@ def init_probes(r0, sigma):
         Dictionary containing keys:
             - r: (ndarray) probe positions
             - size: (float) probe diameter
+            - name: (str) label for this collection
             - type (str) type of particles described
 
     """
     return {'r': r0,
             'size': sigma,
+            'name': name,
             'type': 'probe'}
 
 

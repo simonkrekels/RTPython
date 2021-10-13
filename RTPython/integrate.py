@@ -9,8 +9,9 @@ Created on Mon Oct 11 09:55:43 2021
 
 def srk_rtp_nn(rtp, dt, interactions):
     """
-    Stochastic Runge-Kutta integration for RTPs (no noise). Employs a variable
-    time step to ensure stability. Acts on a given dict of RTPs in-place.
+    Stochastic Runge-Kutta integration for overdamped RTPs (no noise). Employs
+    a variable time step to ensure stability. Acts on a given dict of RTPs
+    in-place.
 
     Parameters
     ----------
@@ -30,5 +31,5 @@ def srk_rtp_nn(rtp, dt, interactions):
     pass
 
 
-def srk_abp(abp, dt, interactions):
+def srk_abp(abp, kT, dt, interactions):
     pass
