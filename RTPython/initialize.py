@@ -6,6 +6,7 @@ Created on Mon Oct 11 11:18:17 2021
 @author: Simon Krekels
 """
 import numpy as np
+from . import distances
 
 
 def simple_grid(L, phi, sigma):
@@ -29,7 +30,7 @@ def simple_grid(L, phi, sigma):
 
     """
     # Some consistency checks
-    if (L < 0):
+    if (np.any(L < 0)):
         raise ValueError("Box size 'L' must be positive.")
 
     if (phi < 0) or (phi > 1):
@@ -39,16 +40,86 @@ def simple_grid(L, phi, sigma):
     if (sigma < 0):
         raise ValueError("Interaction range 'sigma' must be positive.")
 
-    # calculate number of particles needed
-    N = int(np.round(L**2 * phi / (np.pi * (sigma/2)**2)))
+    if (distances.box_shape == 'square'):
 
-    N_sq = int(np.ceil(np.sqrt(N)))
+        # calculate number of particles needed
+        N = int(np.round(L**2 * phi / (np.pi * (sigma/2)**2)))
 
-    coords = np.array(list(np.ndindex(N_sq, N_sq)))[:-(N_sq**2-N)]
+        N_sq = int(np.ceil(np.sqrt(N)))
 
-    coords = L / N_sq * coords
+        coords = np.array(list(np.ndindex(N_sq, N_sq)))[:-(N_sq**2-N)]
 
-    return coords
+        coords = L / N_sq * coords
+
+        return coords
+
+    elif (distances.box_shape == 'rect'):
+
+        Lx, Ly = L
+
+        # calculate number of particles needed
+        a = np.sqrt(np.pi * (sigma/2)**2 / phi)
+
+        Nx = int(Lx // a)
+        Ny = int(Ly // a)
+
+        coords = a * np.array(list(np.ndindex(Nx, Ny)))
+
+        return coords
+
+    else:
+        raise ValueError("RTPython.distances.box_shape must be either \
+                         'square' or 'rect'.")
+
+
+def random(L, N):
+    """
+    Generate random initial positions for N particles wilhin a box of size L.
+
+    WARNING: Do not use when a hard-sphere repulsive potential is active.
+    Random particle positions will overlap significantly and destabilize the
+    simulation.
+
+    Parameters
+    ----------
+    L : float/ndarray
+        Box size.
+    N : int
+        Number of particles.
+
+    Raises
+    ------
+    ValueError
+        For invalid parameter values.
+
+    Returns
+    -------
+    r : ndarray
+        N×2 array of random particle coordinates.
+
+    """
+    # Some consistency checks
+    if (np.any(L < 0)):
+        raise ValueError("Box size 'L' must be positive.")
+
+    if (N < 0):
+        raise ValueError("Number of particles 'N' must be positive.")
+
+    if (distances.box_shape == 'square'):
+
+        r = L * np.random.random((int(N), 2))
+
+        return r
+
+    elif (distances.box_shape == 'rect'):
+
+        r = L * np.random.random((int(N), 2))
+
+        return r
+
+    else:
+        raise ValueError("RTPython.distances.box_shape must be either \
+                         'square' or 'rect'.")
 
 
 def probes_grid(L, phi, sigma, probes):
@@ -77,7 +148,7 @@ def probes_grid(L, phi, sigma, probes):
 
     for r in probes['r']:
         index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
-                         < (sigma + probes['size']) / 2)
+                         < 2**(1/6) * (sigma + probes['size']) / 2)
         coords = np.delete(coords, index, axis=0)
 
     return coords

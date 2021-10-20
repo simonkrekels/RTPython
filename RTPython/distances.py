@@ -12,6 +12,11 @@ conditions in 2D
 import numba as nb
 import numpy as np
 
+# 'box_shape' takes values of either 'rect' or 'square', and determines the
+# shape of the box. Also for 'rect', the 'L' to be passed to pbc functions
+# should be an iterable (L = (Lx, Ly)).
+box_shape = 'square'
+
 
 @nb.jit(nopython=True)
 def pbc_dist(x1, y1, x2, y2, L):
@@ -35,18 +40,36 @@ def pbc_dist(x1, y1, x2, y2, L):
         Closest mirror image distance between (p1) and (p2).
 
     '''
+    if (box_shape == 'square'):
+        xdiff = np.abs(x1 - x2)
+        if xdiff > (L / 2):
+            # if |Δx| > L/2 there is a closer mirror image
+            xdiff = L - xdiff
 
-    xdiff = np.abs(x1 - x2)
-    if xdiff > (L / 2):
-        # if |Δx| > L/2 there is a closer mirror image
-        xdiff = L - xdiff
+        ydiff = np.abs(y1 - y2)
+        if ydiff > (L / 2):
+            # if |Δy| > L/2 there is a closer mirror image
+            ydiff = L - ydiff
 
-    ydiff = np.abs(y1 - y2)
-    if ydiff > (L / 2):
-        # if |Δy| > L/2 there is a closer mirror image
-        ydiff = L - ydiff
+        return np.sqrt(xdiff**2 + ydiff**2)
 
-    return np.sqrt(xdiff**2 + ydiff**2)
+    elif (box_shape == 'rect'):
+        Lx, Ly = L
+        xdiff = np.abs(x1 - x2)
+        if xdiff > (Lx / 2):
+            # if |Δx| > L/2 there is a closer mirror image
+            xdiff = Lx - xdiff
+
+        ydiff = np.abs(y1 - y2)
+        if ydiff > (Ly / 2):
+            # if |Δy| > L/2 there is a closer mirror image
+            ydiff = Ly - ydiff
+
+        return np.sqrt(xdiff**2 + ydiff**2)
+
+    else:
+        raise ValueError("RTPython.distances.box_shape must be either \
+                         'square' or 'rect'.")
 
 
 @nb.jit(nopython=True)
@@ -82,29 +105,62 @@ def pbc_vec(x1, y1, x2, y2, L):
         2-vector pointing from (p2) to p(1) using closest mirror image
 
     '''
-    xdiff = x1 - x2
-    ydiff = y1 - y2
+    if (box_shape == 'square'):
+        xdiff = x1 - x2
+        ydiff = y1 - y2
 
-    # a stores information on the nearest mirror image
-    a = np.zeros(2)
+        # a stores information on the nearest mirror image
+        a = np.zeros(2)
 
-    if xdiff > L/2:
-        # nearest mirror image is to the left
-        a += np.array((1, 0))
+        if xdiff > L/2:
+            # nearest mirror image is to the left
+            a += np.array((1, 0))
 
-    elif xdiff < -L/2:
-        # nearest mirror image is to the right
-        a += np.array((-1, 0))
+        elif xdiff < -L/2:
+            # nearest mirror image is to the right
+            a += np.array((-1, 0))
 
-    if ydiff > L/2:
-        # nearest mirror image is to the bottom
-        a += np.array((0, 1))
+        if ydiff > L/2:
+            # nearest mirror image is to the bottom
+            a += np.array((0, 1))
 
-    elif ydiff < -L/2:
-        # nearest mirror image is to the top
-        a += np.array((0, -1))
+        elif ydiff < -L/2:
+            # nearest mirror image is to the top
+            a += np.array((0, -1))
 
-    return np.array((xdiff, ydiff)) - L*a
+        return np.array((xdiff, ydiff)) - L*a
+
+    if (box_shape == 'rect'):
+
+        Lx, Ly = L
+
+        xdiff = x1 - x2
+        ydiff = y1 - y2
+
+        # a stores information on the nearest mirror image
+        a = np.zeros(2)
+
+        if xdiff > Lx/2:
+            # nearest mirror image is to the left
+            a += np.array((1, 0))
+
+        elif xdiff < -Lx/2:
+            # nearest mirror image is to the right
+            a += np.array((-1, 0))
+
+        if ydiff > Ly/2:
+            # nearest mirror image is to the bottom
+            a += np.array((0, 1))
+
+        elif ydiff < -Ly/2:
+            # nearest mirror image is to the top
+            a += np.array((0, -1))
+
+        return np.array((xdiff, ydiff)) - L*a
+
+    else:
+        raise ValueError("RTPython.distances.box_shape must be either \
+                         'square' or 'rect'.")
 
 
 @nb.jit(nopython=True)

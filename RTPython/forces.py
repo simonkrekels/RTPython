@@ -96,7 +96,13 @@ def force_sum(particles, interactions):
 
     """
 
-    F_res = [np.zeros(particles[p]['r'].shape) for p in particles]
+    F_res = {particles[p]['name']: np.zeros(particles[p]['r'].shape)
+             for p in particles}
 
     for current_int in interactions:
-        continue
+        F = current_int[0](*[particles[a] for a in current_int[1]],
+                           *current_int[2:])
+        for i, f in enumerate(F):
+            F_res[current_int[1][i]] += f
+
+    return F_res

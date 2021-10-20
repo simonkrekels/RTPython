@@ -12,14 +12,14 @@ import scipy.spatial as spatial
 from . import distances
 
 
-def colloid_interaction_periodic(rtp, force, cutoff, boxsize, eps, a):
+def colloid_interaction_periodic(r, force, cutoff, eps, boxsize, a):
     """
     Calculates the interactions between particles in a 2D periodic box.
 
     Parameters
     ----------
-    rtp : dict
-        Dictionary specifying particles; see RTPython.initialize
+    r : ndarray
+        N×2 array containing particle coordinates
     force : function
         A force function which takes (r, a, eps) as arguments. See module
         'forces'.
@@ -39,7 +39,6 @@ def colloid_interaction_periodic(rtp, force, cutoff, boxsize, eps, a):
         interaction forces.
 
     """
-    r = rtp['r']
 
     # Consrtuct a k-d tree to quickly find interacting (nearby) pairs
     kd = spatial.cKDTree(r, boxsize=boxsize)
@@ -107,20 +106,20 @@ def calc_int(r, pairs, force, cutoff, eps, boxsize, a):
         v[i] += F * rr
         v[j] += -F * rr
 
-    return v
+    return v,
 
 
-def colloid_probe_interaction(rtp, probes, force, cutoff, boxsize, eps, a):
+def colloid_probe_interaction(rtp, probes, force, cutoff, eps, boxsize, a):
     """
     Extracts relevant data from dicts and passes to calc func.
     """
     return calc_colloid_probe_int(rtp['r'],
                                   probes['r'],
-                                  force, cutoff, boxsize, eps, a)
+                                  force, cutoff, eps, boxsize, a)
 
 
 @nb.jit(nopython=True)
-def calc_colloid_probe_int(r, rp, force, cutoff, boxsize, eps, a):
+def calc_colloid_probe_int(r, rp, force, cutoff, eps, boxsize, a):
     """
     Calculates the interaction between probes in the colloid-bath. Uses a boun-
     ding box to exclude colliods from interaction.
@@ -189,4 +188,4 @@ def calc_colloid_probe_int(r, rp, force, cutoff, boxsize, eps, a):
         fp[i] += F * r_vec
         v[j] += -F * r_vec
 
-    return fp, v
+    return v, fp
