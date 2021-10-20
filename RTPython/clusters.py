@@ -14,14 +14,48 @@ from scipy.spatial import cKDTree
 
 
 def get_clusters(r, sigma, L):
-    kd = cKDTree(r, boxsize=(L, L))
+    """
+    Get all clusters of a given configuration
+
+    Parameters
+    ----------
+    r : ndarray
+        Particle positions in 2D.
+    sigma : float
+        Particle interaction radius.
+    L : float/ndarray
+        Boxsize to be passed to scipy.distance.cKDTree.
+
+    Returns
+    -------
+    clusters : list
+        List of arrays containing indices of individual clusters.
+
+    """
+
+    # Find 'overlaps' using kd-tree
+    kd = cKDTree(r, boxsize=L)
+    # overlap range slightly larger than cutoff range
     overlaps = kd.query_pairs(1.05*2**(1/6)*sigma, output_type='ndarray')
+
+    # initialize list
     clusters = []
+
+    # variable 'index' keeps track of indices of particles not yet included in
+    # a cluster
     index = np.arange(len(r))
+
     while len(index) > 0:
+
+        # start with last index
         i = index[-1]
+
+        # retrieve cluster and add to list
         clusters.append(cluster(overlaps, i))
+
+        # remove indices of particles just added to cluster
         index = np.setdiff1d(index, clusters[-1])
+
     return clusters
 
 
@@ -33,50 +67,70 @@ def cluster(overlaps, i=0):
 
     Parameters
     ----------
-    overlaps : TYPE
-        DESCRIPTION.
-    i : TYPE
-        DESCRIPTION.
+    overlaps : ndarray
+        array of index-pairs of neighboring ("overlapping") particles within
+        each other's interaction cutoff.
+    i : int
+        index of particle whose cluster to determine.
 
     Returns
     -------
-    TYPE
-        DESCRIPTION.
+    incluster : ndarray
+        array of indices of particles in the same cluster as particle i.
 
     """
+
+    # initialize empty list
     incluster = []
+
+    # use stack-like datastructure
     stack = [i]
+
     while len(stack) > 0:
+
+        # pop from stack
         current = stack.pop()
+
+        # add current to cluster
         incluster.append(current)
+
+        # determine which particles overlap with 'current'
         nbs = overlaps[np.where(overlaps.T[0] == current)].T[1]
+
+        # repeat recursively for neighbours of 'current'
         for j in nbs:
             # avoid double counting: check if j already handled or in queue
             if j not in incluster and j not in stack:
                 stack.append(j)
+
+        # repeat process for when 'current' is the second in pair
         nbs2 = overlaps[np.where((overlaps.T[1] == current))].T[0]
         for j in nbs2:
             # avoid double counting: check if j already handled or in queue
             if j not in incluster and j not in stack:
                 stack.append(j)
+
     return np.array(incluster)
 
 
-def N_clustered(clusters, N_rtp):
+def N_clustered(clusters, N_rtp, eps=0.1):
     """
     Return the number of parcticles in clusters of size 0.10*N_rtp or larger
 
     Parameters
     ----------
-    clusters : TYPE
-        DESCRIPTION.
-    N_rtp : TYPE
-        DESCRIPTION.
+    clusters : list
+        list of lists containing indices of 'clustered' particles.
+    N_rtp : int
+        Number of particles in the simulation.
+    eps : float
+        Number between 0 and 1 indicating the raction of total particles a
+        cluster must contain to be counted.
 
     Returns
     -------
-    n : TYPE
-        DESCRIPTION.
+    n : int
+        Number of particles in large enough clusters.
 
     """
 
@@ -84,7 +138,7 @@ def N_clustered(clusters, N_rtp):
 
     for c in clusters:
 
-        if (size := len(c)) > 0.1*N_rtp:
+        if (size := len(c)) > eps*N_rtp:
 
             n += size
 
@@ -97,13 +151,13 @@ def largest_cluster_size(clusters):
 
     Parameters
     ----------
-    clusters : TYPE
-        DESCRIPTION.
+    clusters : list
+        list of lists containing indices of 'clustered' particles.
 
     Returns
     -------
-    largest : TYPE
-        DESCRIPTION.
+    largest : int
+        size of the largest cluster.
 
     """
 

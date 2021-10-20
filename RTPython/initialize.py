@@ -204,7 +204,7 @@ def probes_random(L, N, probes):
 
     for r in probes['r']:
         index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
-                         < 2**(1/6) * probes['size'])
+                         < 2**(1/6) * probes['size']/2)
         coords = np.delete(coords, index, axis=0)
 
     return coords
