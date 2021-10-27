@@ -189,3 +189,29 @@ def calc_colloid_probe_int(r, rp, force, cutoff, eps, boxsize, a):
         v[j] += -F * r_vec
 
     return v, fp
+
+
+@nb.jit(nopython=True)
+def colloid_probe_int_1D(x, xp, force, cutoff, eps, boxsize, a):
+
+    pairs = []
+    dists = []
+    for i in range(len(xp)):
+        close = np.where(np.abs(x - xp[i]) < cutoff)
+        for j in close[0]:
+            dist = distances.pbc_vec_1D(xp[i], x[j], boxsize)
+            pairs.append((i, j))
+            dists.append(dist)
+
+    fp = np.zeros(xp.shape)
+    f = np.zeros(x.shape)
+
+    for k in range(len(pairs)):
+        l, m = pairs[k]
+        dist = dists[k]
+        vec = np.sign(dist)
+        F = force(np.abs(dist), a, eps)
+        fp[l] += F * vec
+        f[m] += -F * vec
+
+    return f, fp

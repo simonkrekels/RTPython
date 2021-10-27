@@ -213,3 +213,61 @@ def euclid_vec(x1, y1, x2, y2):
 
     '''
     return np.array((x1 - x2, y1 - y2))
+
+
+@nb.jit(nopython=True)
+def pbc_dist_1D(x1, x2, L):
+    """
+    Calculate distance between x1, x2 on a periodic 1D line
+
+    Parameters
+    ----------
+    x1(2) : float
+        positions 1 and 2 on the real line.
+    L : float
+        Length of periodic line segment.
+
+    Returns
+    -------
+    dist : float
+        shortest distance between x1, x2 on the periodic line.
+
+    """
+
+    dist = np.abs(x1 - x2)
+
+    if (dist > L/2):
+        return L - dist
+    else:
+        return dist
+
+
+@nb.jit(nopython=True)
+def pbc_vec_1D(x1, x2, L):
+    """
+    Calculate *signed* distance between x1, x2 on a periodic 1D line, looking
+    from x2 to x1
+
+    Parameters
+    ----------
+    x1(2) : float
+        positions 1 and 2 on the real line.
+    L : float
+        Length of periodic line segment.
+
+    Returns
+    -------
+    dist : float
+        shortest distance between x1, x2 on the periodic line. The sign gives
+        distance looking from x2 to x1
+
+    """
+
+    dist = x1 - x2
+
+    if (dist > L/2):
+        return dist - L
+    elif (dist < -L/2):
+        return dist + L
+    else:
+        return dist
