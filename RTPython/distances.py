@@ -271,3 +271,30 @@ def pbc_vec_1D(x1, x2, L):
         return dist + L
     else:
         return dist
+
+
+@nb.vectorize()
+def pbc_dist_1D_nb(x1, x2, L):
+    """
+    Calculate distance between x1, x2 on a periodic 1D line
+
+    Parameters
+    ----------
+    x1(2) : float
+        positions 1 and 2 on the real line.
+    L : float
+        Length of periodic line segment.
+
+    Returns
+    -------
+    dist : float
+        shortest distance between x1, x2 on the periodic line.
+
+    """
+
+    dist = np.abs(x1 - x2)
+
+    if (dist > L/2):
+        return L - dist
+    else:
+        return dist

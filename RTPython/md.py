@@ -197,7 +197,9 @@ def colloid_probe_int_1D(x, xp, force, cutoff, eps, boxsize, a):
     pairs = []
     dists = []
     for i in range(len(xp)):
-        close = np.where(np.abs(x - xp[i]) < cutoff)
+        close = np.where(distances.pbc_dist_1D_nb(xp[i],
+                                                            x, boxsize)
+                         < cutoff)
         for j in close[0]:
             dist = distances.pbc_vec_1D(xp[i], x[j], boxsize)
             pairs.append((i, j))
