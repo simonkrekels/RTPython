@@ -196,10 +196,79 @@ def calc_colloid_probe_int_bb(r, rp, force, cutoff, eps, boxsize, a):
     return v, fp
 
 
+def colloid_probe_interaction(rtp, probes, force, cutoff, eps, boxsize, a):
+    """
+    Extracts relevant data from dicts and passes to calc func.
+    """
+    return calc_colloid_probe_int_bb(rtp['r'],
+                                  probes['r'],
+                                  force, cutoff, eps, boxsize, a)
+
+
+@nb.jit(nopython=True)
+def calc_colloid_probe_int(r, rp, force, cutoff, eps, boxsize, a):
+    """
+    Calculates the interaction between probes in the colloid-bath.
+
+    Parameters
+    ----------
+    r : ndarray
+        Nx2 array containing colloid coordinates.
+    rp : ndarray
+        Npx2 array containing probe coordinates.
+    force : func
+        function which evaluates the pair potential force between probes and
+        colloids.
+    cutoff : float
+        cutoff radius for the probe-colloid interaction.
+    boxsize : float/ndarray
+        boxsize to use when evaluating distances using PBCs.
+    eps : float
+        interaction strength to pass to 'force'.
+    a : float
+        interaction radius to pass to 'force'.
+
+    Returns
+    -------
+    fp : ndarray
+        forces on the probes.
+    v : ndarray
+        forces on the colloids.
+
+    """
+
+    # n° of pairs unknown -> use flexible python list
+    pairs = []
+    dists = []
+    N = len(r)
+    for i in range(len(rp)):
+        for j in range(N):
+            d = distances.pbc_metric(r[j], rp[i], boxsize)
+            if (d < cutoff):
+                pairs.append((i, j))
+                dists.append(d)
+
+    # handle overlapping pairs
+    fp = np.zeros(rp.shape)
+    v = np.zeros(r.shape)
+    for k in range(len(pairs)):
+        i, j = pairs[k]
+        r_dist = dists[k]
+        r_vec = distances.pbc_vec(rp[i][0],
+                                  rp[i][1],
+                                  r[j][0],
+                                  r[j][1], boxsize)/r_dist
+        F = force(r_dist, a, eps)
+        fp[i] += F * r_vec
+        v[j] += -F * r_vec
+
+    return v, fp
+
+
 @nb.jit(nopython=True)
 def colloid_probe_int_1D(x, xp, force, cutoff, eps, boxsize, a):
     """
-    
+
     """
     pairs = []
     dists = []
