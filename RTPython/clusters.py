@@ -137,8 +137,8 @@ def N_clustered(clusters, N_rtp, eps=0.1):
     n = 0
 
     for c in clusters:
-
-        if (size := len(c)) > eps*N_rtp:
+        size = len(c)
+        if (size) > eps*N_rtp:
 
             n += size
 
