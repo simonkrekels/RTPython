@@ -44,6 +44,7 @@ def quadratic(r, a, eps):
     return eps * (1-r/a)/a
 
 
+@nb.jit(nopython=True)
 def soft_bump(r, a, eps):
     '''
     Force derived from a quadratic potential; F = -∇V
