@@ -18,7 +18,7 @@ def quadratic(r, a, eps):
     '''
     Force derived from a quadratic potential; F = -∇V
 
-        V(r) = eps * (1 - r/(2a))**2
+        V(r) = eps * (1 - r/a)**2
 
     The resulting force is linear in r.
 
@@ -41,7 +41,36 @@ def quadratic(r, a, eps):
 
     '''
 
-    return eps * (1-r/(a))/a
+    return eps * (1-r/a)/a
+
+
+def soft_bump(r, a, eps):
+    '''
+    Force derived from a quadratic potential; F = -∇V
+
+        V(r) = eps * (1 - (r/a)**2)**2
+
+
+    ----------
+    Parameters
+    ----------
+    r : float
+        distance between objects to calculate force between
+
+    a : float
+        range of interaction; assumes symmetric interaction
+
+    eps : float
+        modulation of interaction strength
+
+    Returns
+    -------
+    float
+        the magnitude of the quadratic force between the objects at distance r
+
+    '''
+
+    return 4*eps*r/a * (1-(r/a)**2)
 
 
 @nb.jit(nopython=True)
