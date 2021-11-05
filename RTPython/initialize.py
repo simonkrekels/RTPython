@@ -297,7 +297,7 @@ def init_probes(r0, sigma, name='B'):
             'type': 'probe'}
 
 
-def init_rigid_body(r0, sigma, name='C'):
+def init_rigid_body(r0, R0, sigma, name='C'):
     """
     Initialize a collection of identical probes defining a rigid body.
 
