@@ -6,6 +6,7 @@ Created on Mon Oct 11 11:18:17 2021
 @author: Simon Krekels
 """
 import numpy as np
+import numba as nb
 from . import distances
 
 
@@ -297,7 +298,7 @@ def init_probes(r0, sigma, name='B'):
             'type': 'probe'}
 
 
-def init_rigid_body(r0, R0, sigma, name='C'):
+def init_rigid_body(r0, R0, a0, sigma, name='C'):
     """
     Initialize a collection of identical probes defining a rigid body.
 
@@ -325,6 +326,7 @@ def init_rigid_body(r0, R0, sigma, name='C'):
     """
     return {'r': r0,
             'R': R0,
+            'a': a0,
             'size': sigma,
             'name': name,
             'type': 'rigid body'}
@@ -334,6 +336,7 @@ def init_walls():
     pass
 
 
+@nb.jit(nopython=True)
 def semi_circle(position, rad, rot, num):
     """
     Generate a semi-circular set of coordinates.
@@ -360,7 +363,8 @@ def semi_circle(position, rad, rot, num):
     angles = np.linspace(-np.pi/2 + rot, np.pi/2 + rot, num)
 
     # convert to cartesian coordinates
-    r = np.array((position[0] + rad * np.cos(angles),
-                  position[1] + rad * np.sin(angles)))
+    x = position[0] + rad * np.cos(angles)
+    y = position[1] + rad * np.sin(angles)
+    r = np.column_stack((x, y))
 
-    return r.T
+    return r
