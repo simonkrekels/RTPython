@@ -297,6 +297,39 @@ def init_probes(r0, sigma, name='B'):
             'type': 'probe'}
 
 
+def init_rigid_body(r0, sigma, name='C'):
+    """
+    Initialize a collection of identical probes defining a rigid body.
+
+    Parameters
+    ----------
+    r0 : ndarray
+        probe positions.
+    R0 : ndarray
+        position of the axis of rotation of the body
+    sigma : float
+        probe diameter.
+    name : str
+        label for this collection.
+
+    Returns
+    -------
+    dict
+        Dictionary containing keys:
+            - r: (ndarray) probe positions
+            - R: (ndarray) position of axis of rotation
+            - size: (float) probe diameter
+            - name: (str) label for this collection
+            - type (str) type of particles described
+
+    """
+    return {'r': r0,
+            'R': R0,
+            'size': sigma,
+            'name': name,
+            'type': 'rigid body'}
+
+
 def init_walls():
     pass
 
