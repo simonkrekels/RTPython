@@ -215,7 +215,7 @@ def euclid_vec(x1, y1, x2, y2):
     return np.array((x1 - x2, y1 - y2))
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=True, fastmath=True)
 def pbc_dist_1D(x1, x2, L):
     """
     Calculate distance between x1, x2 on a periodic 1D line
