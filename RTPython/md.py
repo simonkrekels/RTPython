@@ -8,7 +8,7 @@ Created on Wed Oct  6 11:22:10 2021
 import numpy as np
 import numba as nb
 import scipy.spatial as spatial
-# from . import forces
+from . import forces
 from . import distances
 
 
@@ -114,8 +114,8 @@ def colloid_probe_interaction_bb(rtp, probes, force, cutoff, eps, boxsize, a):
     Extracts relevant data from dicts and passes to calc func.
     """
     return calc_colloid_probe_int_bb(rtp['r'],
-                                  probes['r'],
-                                  force, cutoff, eps, boxsize, a)
+                                     probes['r'],
+                                     force, cutoff, eps, boxsize, a)
 
 
 @nb.jit(nopython=True)
@@ -201,8 +201,8 @@ def colloid_probe_interaction(rtp, probes, force, cutoff, eps, boxsize, a):
     Extracts relevant data from dicts and passes to calc func.
     """
     return calc_colloid_probe_int_bb(rtp['r'],
-                                  probes['r'],
-                                  force, cutoff, eps, boxsize, a)
+                                     probes['r'],
+                                     force, cutoff, eps, boxsize, a)
 
 
 @nb.jit(nopython=True)
@@ -291,3 +291,37 @@ def colloid_probe_int_1D(x, xp, force, cutoff, eps, boxsize, a):
         f[m] += -F * vec
 
     return f, fp
+
+
+@nb.jit(nopython=True)
+def hwall_int(r, sigma, eps, boxsize):
+    """
+    Repulsive WCA-type interaction with top and bottom of box.
+
+    Parameters
+    ----------
+    r : TYPE
+        DESCRIPTION.
+    sigma : TYPE
+        DESCRIPTION.
+    eps : TYPE
+        DESCRIPTION.
+    boxsize : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    f : TYPE
+        DESCRIPTION.
+
+    """
+    f = np.zeros(r.shape)
+    # below
+    low = np.where(r[:, 1] < 2**(1/6)*sigma)[0]
+    for i in low:
+        f[i, 1] += forces.wca(r[i, 1], sigma, eps)
+    # above
+    high = np.where(r[:, 1] > boxsize[1] - 2**(1/6)*sigma)[0]
+    for i in high:
+        f[i, 1] -= forces.wca(boxsize[1]-r[i, 1], sigma, eps)
+    return f
