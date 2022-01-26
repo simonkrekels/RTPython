@@ -71,7 +71,7 @@ def soft_bump(r, a, eps):
 
     '''
 
-    return 4*eps*r/a * (1-(r/a)**2)
+    return 4*eps*r/a**2 * (1-(r/a)**2)
 
 
 @nb.jit(nopython=True)
