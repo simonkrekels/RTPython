@@ -155,6 +155,38 @@ def probes_grid(L, phi, sigma, probes):
     return coords
 
 
+def probes_grid_(L, phi, rtp_a, probe_a, probes_r):
+    """
+
+
+    Parameters
+    ----------
+    L : float
+        Box size.
+    phi : float
+        Density (packing fraction). Should be a number between 0 and 1; between
+        0 and π/4 ≈ 0.785 if hard sphere potential is used.
+    sigma : float
+        Interaction range (diameter) of colloids.
+    probes : dict
+        dict containing probe data. See RTPython.initialize.init_probes
+
+    Returns
+    -------
+    coords : ndarray
+        Grid coordinates with space left out for probes..
+
+    """
+    coords = simple_grid(L, phi, rtp_a)
+    int_a = (rtp_a + probe_a) / 2
+    for r in probes_r:
+        index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
+                         < 2**(1/6) * int_a)
+        coords = np.delete(coords, index, axis=0)
+
+    return coords
+
+
 def probes_random(L, N, probes):
     """
     Generate random initial positions for N particles within a box of size L.
