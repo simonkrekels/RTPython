@@ -235,10 +235,72 @@ def probes_random(L, N, probes):
         raise ValueError("RTPython.distances.box_shape must be either \
                          'square' or 'rect'.")
 
-    for r in probes['r']:
-        index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
-                         < 2**(1/6) * probes['size']/2)
-        coords = np.delete(coords, index, axis=0)
+    num_overlap = 1
+    while num_overlap > 0:
+        for r in probes['r']:
+            index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
+                             < 2**(1/6) * probes['size']/2)
+            num_overlap = len(index[0])
+            coords[index] = L * np.random.random((num_overlap, 2))
+
+    return coords
+
+
+def probes_random_(L, N, probes_a, probes_r):
+    """
+    Generate random initial positions for N particles within a box of size L.
+    Also avoids placing particles over probes
+
+    WARNING: Do not use when a hard-sphere repulsive potential is active.
+    Random particle positions will overlap significantly and destabilize the
+    simulation.
+
+    Parameters
+    ----------
+    L : float/ndarray
+        Box size.
+    N : int
+        Number of particles.
+    probes : dict
+        see initialize.init_probes
+
+    Raises
+    ------
+    ValueError
+        For invalid parameter values.
+
+    Returns
+    -------
+    coords : ndarray
+        N×2 array of random particle coordinates, not overlapping with probes.
+
+    """
+    # Some consistency checks
+    if (np.any(L < 0)):
+        raise ValueError("Box size 'L' must be positive.")
+
+    if (N < 0):
+        raise ValueError("Number of particles 'N' must be positive.")
+
+    if (distances.box_shape == 'square'):
+
+        coords = L * np.random.random((int(N), 2))
+
+    elif (distances.box_shape == 'rect'):
+
+        coords = L * np.random.random((int(N), 2))
+
+    else:
+        raise ValueError("RTPython.distances.box_shape must be either \
+                         'square' or 'rect'.")
+
+    num_overlap = 1
+    while num_overlap > 0:
+        for r in probes_r:
+            index = np.where(np.sqrt(np.sum((coords - r)**2, axis=1))
+                             < 2**(1/6) * probes_a)
+            num_overlap = len(index[0])
+            coords[index] = L * np.random.random((num_overlap, 2))
 
     return coords
 
